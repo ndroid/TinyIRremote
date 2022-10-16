@@ -3,16 +3,31 @@
  *
  *  Small memory footprint uses Timer PWM output for 38kHz IR signal.
  *
- *  Transmits IR protocol data of NEC protocol using PWM output. Pin 
- *  configuration is toggled from CCRx output to GPIO output for faster 
- *  toggle between marks and spaces. Multiple IR transmit objects may 
- *  be declared as type IRsend. Each IRsend object must be initialized 
- *  with call to 
+ *  Transmits IR protocol data of NEC protocol using PWM output. Pin configuration 
+ *  is toggled from CCRx output to GPIO output for faster toggle between marks and 
+ *  spaces. Multiple IR transmit objects may be declared as type IRsend. Each 
+ *  IRsend object must be initialized with call to 
  * 
  *  bool IRsend::begin(uint8_t aSendPin, bool aEnableLEDFeedback, uint8_t aLEDFeedbackPin)
  *  
  *
  *  Supported send pins include:
+ *     pin#        port.pin     timer
+ *      3           P3.2        mappable
+ *      4           P3.3        mappable
+ *      11          P3.6        mappable
+ *      17          P5.7        TA2.2
+ *      18          P3.0        mappable
+ *      19          P2.5        TA0.2/mappable
+ *      31          P3.7        mappable
+ *      32          P3.5        mappable
+ *      34          P2.3        TA1.1/mappable
+ *      35          P6.7        TA2.4
+ *      36          P6.6        TA2.3
+ *      37          P5.6        TA2.1
+ *      38          P2.4        TA0.1/mappable
+ *      39          P2.6        TA0.3/mappable
+ *      40          P2.7        TA0.4/mappable
  * 
  * 
  *  TinyIR is free software: you can redistribute it and/or modify
