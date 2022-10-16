@@ -12,7 +12,8 @@
  *  so if you require longer action, save the data (address + command) and handle it in the main loop.
  *  !!!!!!!!!!!!!!!!!!!!!
  *  
- *  IR input pin must be pin 33 (P5.1)
+ *  IR input pin must be specified in call to initTinyIRReceiver()
+ *      any GPIO pin which supports interrupts may be used
  *
  *
  *  TinyIR is free software: you can redistribute it and/or modify
@@ -35,10 +36,10 @@
  */
 //#define DO_NOT_USE_FEEDBACK_LED 
 /*
- * Uncomment the following line to include repeats in decodeIR(). 
- *  Otherwise, repeats are ignored and decodeIR() only returns new commands.
+ * Uncomment the following line to exclude repeats in decodeIR(). 
+ *  Otherwise, repeats are included and isRepeat is set. 
  */
-//#define INCLUDE_REPEATS
+//#define EXCLUDE_REPEATS
 /*
  * Uncomment the following line in order to define handler for IR event.
  * If enabled, must define 
@@ -47,7 +48,7 @@
 #define HANDLE_IR_EVENT
 
 // Preceding defines (if enabled) must be included prior to including header file
-#include "TinyIR.h"
+#include <TinyIRremote.h>
 
 /*
  * Helper macro for getting a macro definition as string
@@ -55,37 +56,57 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+#define IR_RCV_PIN      32
+
+/**
+ * Struct to hold IR data, defined as:
+ * 
+ * struct {
+ *   decode_type_t protocol;     ///< UNKNOWN, NEC, SONY, RC5, ...
+ *   uint16_t address;           ///< Decoded address
+ *   uint16_t command;           ///< Decoded command
+ *   bool isRepeat;
+ * } 
+ */
 IRData IRresults;
-bool ledState = FALSE;
+
+volatile bool justWritten = false;
 
 void setup() {
     Serial.begin(57600);
     delay(500); // To be able to connect Serial monitor after reset or power up 
     Serial.println(F("START " __FILE__ " from " __DATE__));
-    pinMode(BLUE_LED, OUTPUT);
     /*
      * Must be called to initialize and set up IR receiver pin.
-     * IR receiver must be on pin 33 (P5.1)
+     *  bool initTinyIRReceiver(uint8_t aRcvPin, bool aEnableLEDFeedback = false, uint8_t aFeedbackLEDPin = USE_DEFAULT_FEEDBACK_LED_PIN)
      */
-    initTinyIRReceiver();
-    Serial.println(F("Ready to receive NEC IR signals at pin " STR(IR_INPUT_PIN)));
+    if (initTinyIRReceiver(IR_RCV_PIN, true, GREEN_LED)) {
+        Serial.println(F("Ready to receive NEC IR signals at pin " STR(IR_RCV_PIN)));
+    } else {
+        Serial.println("Initialization of IR receiver failed!");
+        while (1) {;}
+    }
 }
 
 void loop() {
     // decodeIR updates results and returns true if new command is available, 
     //  otherwise results struct is unchanged and returns false
-    if (decodeIR(&IRresults)) {
-        Serial.print("A=0x");
+    if (justWritten) {
+        justWritten = false;
+        Serial.print("Address=0x");
         Serial.print(IRresults.address, HEX);
-        Serial.print(" C=0x");
+        Serial.print(" Command=0x");
         Serial.print(IRresults.command, HEX);
+        if (IRresults.isRepeat) {
+            Serial.print(" - repeat");
+        }
         Serial.println();
     }
 }
 
 /*
  * This function is called if a complete command was received, regardless if 
- *  it is a repeat (not impacted by INCLUDE_REPEATS constant).
+ *  it is a repeat (not impacted by EXCLUDE_REPEATS constant).
  *  !!!!!!!!!!!!!!!!!!!!!!
  *  Function called in interrupt context - should be running as short as possible,
  *  so if you require longer action, save the data (address + command) and handle it in the main loop.
@@ -93,11 +114,12 @@ void loop() {
  */
 void handleReceivedTinyIRData(uint16_t aAddress, uint8_t aCommand, bool isRepeat) {
     /*
-     * Print only very short output, since we are in an interrupt context and do not want to miss the next interrupts of the repeats coming soon
+     * Since we are in an interrupt context and do not want to miss the next interrupts of the repeats coming soon,
+     *  quickly save data and return to main loop
      */
-    if (isRepeat) {
-        Serial.println(" - repeat");
-    }
-    ledState = !ledState;
-    digitalWrite(BLUE_LED, ledState);
+    IRresults.address = aAddress;
+    IRresults.command = aCommand;
+    IRresults.isRepeat = isRepeat;
+    // Let main function know that new data is available
+    justWritten = true;
 }

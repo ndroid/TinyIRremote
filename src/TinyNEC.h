@@ -127,10 +127,6 @@ void handleReceivedTinyIRData(uint16_t aAddress, uint8_t aCommand, bool isRepeat
 #define IR_RECEIVER_STATE_WAITING_FOR_STOP_MARK         5
 
 #define MAX_SUPPORTED_PIN   40
-// TODO implement for Tiny receiver timer ?
-//#define TIMER_RESET_INTR_PENDING
-//#define TIMER_ENABLE_RECEIVE_INTR   sSTM32Timer.resume()
-//#define TIMER_DISABLE_RECEIVE_INTR  sSTM32Timer.pause()
 
 static const uint32_t GPIO_PORT_TO_BASE[] =
 {   0x00,
